@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Monitoring System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Mainscreen -->
+    <div class="card">
+
+        <!-- Title -->
+        <div class="header">
+            <img src="ZAMECO LOGO.png" alt="ZAMECO I Logo" class="logo">
+            <h2>Zambales I Electric Cooperative, Inc.</h2>
+        </div>
+        <h1>Fuel Monitoring</h1>
+
+        <!-- Date and Municipality selection -->
+        <label>Date</label> <input type="text" id="date" readonly>
+        <label>Municipality</label> 
+        <select id="municipality">
+            <option value="">Select Municipality</option>
+            <option>STA CRUZ</option>
+            <option>CANDELARIA</option>
+            <option>MASINLOC</option>
+            <option>PALAUIG</option>
+            <option>IBA</option>
+            <option>BOTOLAN</option>
+        </select>
+
+        <div class="gps">
+            Latitude: <span id="lat">...</span><br>
+            Longitude: <span id="lng">...</span>
+        </div>
+
+        <div class="preview" id="preview">No image captured</div>
+        <button onclick="openCamera()">📷 Capture Photo</button>
+        <input type="file" id="camera" accept="image/*" capture="environment" hidden>
+        <div id="status" class="status"></div>
+
+    </div>
+
+<script>
+    // IMPORTANT: REPLACE THIS WITH YOUR OWN DEPLOYED SCRIPT URL FOR GDRIVE BACKEND
+    const SCRIPT_URL =
+    "https://script.google.com/macros/s/AKfycbzwJeSckxflzcOW9o_PHcAARwqPoMSWeuceF_Z0nHW2ELtmjD-hQx4RVZOAg6C669Ba/exec";
+
+    const today = new Date().toISOString().split("T")[0];
+    document.getElementById("date").value = today;
+
+    let lat = "";
+    let lng = "";
+
+    navigator.geolocation.getCurrentPosition(
+    pos => {
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+        document.getElementById("lat").innerText = lat;
+        document.getElementById("lng").innerText = lng;
+    },
+    err => {
+        document.getElementById("lat").innerText = "N/A";
+        document.getElementById("lng").innerText = "N/A";
+    }
+    );
+
+    function openCamera(){
+        document.getElementById("camera").click();
+    }
+
+    document.getElementById("camera").addEventListener("change", function(e){
+
+    const file = e.target.files[0];
+    if(!file) return;
+
+    const municipality = document.getElementById("municipality").value;
+    if(!municipality){
+        alert("Select municipality first");
+        return;
+    }
+
+    document.getElementById("preview").innerHTML =
+    `<img src="${URL.createObjectURL(file)}">`;
+
+    const reader = new FileReader();
+
+    reader.onload = function(){
+
+        const base64 = reader.result.split(",")[1];
+
+        document.getElementById("status").innerHTML =
+        "<span class='loading'>Uploading...</span>";
+
+        fetch(SCRIPT_URL, {
+            method: "POST",
+            body: new URLSearchParams({
+            municipality,
+            dateFolder: today,
+            fileName: file.name,
+            mimeType: file.type,
+            base64Data: base64,
+            latitude: lat,
+            longitude: lng
+            })
+        })
+
+        .then(async res => {
+            const text = await res.text();   // IMPORTANT FIX
+            console.log("RAW RESPONSE:", text);
+            return JSON.parse(text);
+        })
+
+        .then(data => {
+            if (data.success) {
+                document.getElementById("status").innerHTML =
+                "<span class='success'>" + data.message + "</span>";
+            } else {
+                document.getElementById("status").innerHTML =
+                "<span class='error'>" + data.message + "</span>";
+            }
+        })
+
+        .catch(err => {
+            console.error(err);
+            document.getElementById("status").innerHTML =
+            "<span class='error'>Backend not reachable</span>";
+        });
+
+    };
+
+    reader.readAsDataURL(file);
+
+    });
+
+</script>
+
+</body>
+</html>
