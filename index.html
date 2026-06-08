@@ -33,7 +33,12 @@
             <option>BOTOLAN</option>
         </select>
 
-        <h5>Please allow the location access!</h5> 
+        <label>Specific Station</label>
+        <select id="specificLocation">
+            
+        </select>
+
+        <h5>Please allow the location access!</h5>
         <div class="gps">
             Latitude: <span id="lat">...</span><br>
             Longitude: <span id="lng">...</span>
@@ -45,8 +50,102 @@
         <div id="status" class="status"></div>
 
     </div>
-
+<script src="https://cdn.jsdelivr.net/npm/piexifjs"></script>
 <script>
+    const locations = {
+
+        "STA CRUZ": [
+            "Jetti (Poblacion)",
+            "Starport (Real Street)",
+            "PTT Gas Station (Lipay)",
+            "Starport Gas Service Station",
+            "Petron (Lipay)",
+            "Jetti (Lipay)",
+            "CETRUM GASOLINE STATION (Lipay)",
+            "Petro Gazz Sta. Cruz",
+            "Casulibay",
+        ],
+
+        "CANDELARIA": [
+            "808 Fuel",
+            "Petro Gazz",
+            "Centrum Fuel (Catol)",
+            "1Petrol (Catol)",
+            "LRE Supreme Fuel Gasoline Station",
+            "NCM GASOLINE STATION",
+            "Petron (Sinabacan)",
+            "PTT (Uacon)",
+            "Jetti (Poblacion)",
+        ],
+
+        "MASINLOC": [
+            "PTT Station Masinloc",
+            "Agra Gas South Poblacion",
+            "Big-H",
+            "BOSS Gasoline Station",
+            "1 PetroL-SDG",
+            "GabRon Gasoline Station",
+            "JAYHAN",
+        ],
+
+        "PALAUIG": [
+            "PTT Gas Station (PTT Palauig)",
+            "Petron (Palauig)",
+            "King Fuel",
+        ],
+
+        "IBA": [
+            "MC Petron Bulilit Station",
+            "1Petrol (Palanginan)",
+            "Phoenix Gas Station (Palanginan)",
+            "PTT IBA Gasoline Station (Palanginan)",
+            "Primer Gas Station (GH)",
+            "Centrum Fuel (Dirita)",
+            "Petron (Zone 1, Iba)",
+            "Primer Jr. Gas Station",
+            "PTT IBA Gasoline Station (Dirita)",
+            "BLC Gas Station",
+            "Centrum Fuel (Bangantalinga)",
+            "Phoenix Gas Station (Bangantalinga)",
+            "MJQ Fuel",
+            "Traveller's Petron Servicenter (Victory liner)",
+            "Agra Gas (Amungan)",
+        ],
+
+        "BOTOLAN": [
+            "Flying V Gas Station",
+            "Agra Gas (Tampo)",
+            "Primer Gas Station (Batonlapoc)",
+            "Taugtog RMS Micro Gas Station",
+            "Primer Gas (Taugtog)",
+            "RMS San Miguel micro gas station",
+            "Primer Gas Station (Bucao)",
+        ]
+    };
+
+    document.getElementById("municipality").addEventListener("change", function () {
+
+        const municipality = this.value;
+        const locationSelect = document.getElementById("specificLocation");
+
+        locationSelect.innerHTML =
+            '<option value="">Select Station</option>';
+
+        if (!municipality || !locations[municipality]) return;
+
+        locations[municipality].forEach(location => {
+
+            const option = document.createElement("option");
+
+            option.value = location;
+            option.textContent = location;
+
+            locationSelect.appendChild(option);
+
+        });
+
+    });
+
     // IMPORTANT: REPLACE THIS WITH YOUR OWN DEPLOYED SCRIPT URL FOR GDRIVE BACKEND
     const SCRIPT_URL =
     "https://script.google.com/macros/s/AKfycbzwJeSckxflzcOW9o_PHcAARwqPoMSWeuceF_Z0nHW2ELtmjD-hQx4RVZOAg6C669Ba/exec";
@@ -85,6 +184,12 @@
         return;
     }
 
+    const station = document.getElementById("specificLocation").value;
+    if(!station){
+        alert("Select station first");
+        return;
+    }
+
     document.getElementById("preview").innerHTML =
     `<img src="${URL.createObjectURL(file)}">`;
 
@@ -92,7 +197,70 @@
 
     reader.onload = function(){
 
-        const base64 = reader.result.split(",")[1];
+        const imageData = reader.result;
+
+        // Only JPEG supports EXIF reliably
+        if (!file.type.includes("jpeg") && !file.type.includes("jpg")) {
+
+            const base64 = imageData.split(",")[1];
+
+            uploadImage(base64);
+            return;
+        }
+
+        function toDMS(decimal) {
+
+            const abs = Math.abs(decimal);
+
+            const degrees = Math.floor(abs);
+
+            const minutesFloat = (abs - degrees) * 60;
+            const minutes = Math.floor(minutesFloat);
+
+            const seconds = (minutesFloat - minutes) * 60;
+
+            return [
+                [degrees, 1],
+                [minutes, 1],
+                [Math.round(seconds * 10000), 10000]
+            ];
+        }
+
+        const gpsIFD = {};
+
+        gpsIFD[piexif.GPSIFD.GPSLatitudeRef] =
+            lat >= 0 ? "N" : "S";
+
+        gpsIFD[piexif.GPSIFD.GPSLatitude] =
+            toDMS(lat);
+
+        gpsIFD[piexif.GPSIFD.GPSLongitudeRef] =
+            lng >= 0 ? "E" : "W";
+
+        gpsIFD[piexif.GPSIFD.GPSLongitude] =
+            toDMS(lng);
+
+        const exifObj = {
+            GPS: gpsIFD
+        };
+
+        const exifBytes = piexif.dump(exifObj);
+
+        const imageWithGPS =
+            piexif.insert(exifBytes, imageData);
+
+        const base64 =
+            imageWithGPS.split(",")[1];
+
+        uploadImage(base64);
+
+    };
+
+    reader.readAsDataURL(file);
+
+    });
+
+    function uploadImage(base64){
 
         document.getElementById("status").innerHTML =
         "<span class='loading'>Uploading...</span>";
@@ -100,43 +268,49 @@
         fetch(SCRIPT_URL, {
             method: "POST",
             body: new URLSearchParams({
-            municipality,
-            dateFolder: today,
-            fileName: file.name,
-            mimeType: file.type,
-            base64Data: base64,
-            latitude: lat,
-            longitude: lng
+                municipality: document.getElementById("municipality").value,
+                station: document.getElementById("specificLocation").value,
+                dateFolder: today,
+                fileName: document.getElementById("camera").files[0].name,
+                mimeType: document.getElementById("camera").files[0].type,
+                base64Data: base64,
+                latitude: lat,
+                longitude: lng
             })
         })
 
         .then(async res => {
-            const text = await res.text();   // IMPORTANT FIX
-            console.log("RAW RESPONSE:", text);
+            const text = await res.text();
             return JSON.parse(text);
         })
 
         .then(data => {
-            if (data.success) {
+
+            if(data.success){
+
                 document.getElementById("status").innerHTML =
                 "<span class='success'>" + data.message + "</span>";
-            } else {
+
+            }else{
+
                 document.getElementById("status").innerHTML =
                 "<span class='error'>" + data.message + "</span>";
+
             }
+
         })
 
         .catch(err => {
+
             console.error(err);
+
             document.getElementById("status").innerHTML =
             "<span class='error'>Backend not reachable</span>";
+
         });
 
-    };
-
-    reader.readAsDataURL(file);
-
-    });
+    }
+    
 
 </script>
 
