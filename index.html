@@ -19,8 +19,6 @@
         <h1>Fuel Monitoring</h1>
 
         <!-- Date and Municipality selection -->
-        <label> For GPS and camera features, please open this page in External Browser. </label><br><hr>
-
         <label>Date</label> <input type="text" id="date" readonly>
         <label>Municipality</label> 
         <select id="municipality">
@@ -33,16 +31,9 @@
             <option>BOTOLAN</option>
         </select>
 
-        <label>Please allow the location!</label>
         <div class="gps">
             Latitude: <span id="lat">...</span><br>
-            Longitude: <span id="lng">...</span><br><br>
-
-            Address:<br>
-            <span id="address">Detecting...</span><br><br>
-
-            Nearest Landmark:<br>
-            <span id="landmark">Detecting...</span>
+            Longitude: <span id="lng">...</span>
         </div>
 
         <div class="preview" id="preview">No image captured</div>
@@ -62,100 +53,19 @@
 
     let lat = "";
     let lng = "";
-    let address = "";
-    let landmark = "";
-
-    const GEOAPIFY_KEY = "8125a13b46be46639d4de8833f4b3b85";
 
     navigator.geolocation.getCurrentPosition(
-        async pos => {
-
-            lat = pos.coords.latitude;
-            lng = pos.coords.longitude;
-
-            document.getElementById("lat").innerText = lat;
-            document.getElementById("lng").innerText = lng;
-
-            await getLocationDetails(lat, lng);
-
-        },
-        err => {
-
-            document.getElementById("lat").innerText = "N/A";
-            document.getElementById("lng").innerText = "N/A";
-
-            document.getElementById("address").innerText =
-            "Location permission denied";
-
-            document.getElementById("landmark").innerText =
-            "Location permission denied";
-
-        },
-        {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 0
-        }
-    );
-
-    async function getLocationDetails(lat, lng){
-
-        try {
-
-            // Reverse Geocoding
-            const geoResponse = await fetch(
-                `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&apiKey=${GEOAPIFY_KEY}`
-            );
-
-            const geoData = await geoResponse.json();
-
-            if(geoData.features && geoData.features.length){
-
-                address =
-                    geoData.features[0].properties.formatted ||
-                    "Address unavailable";
-
-                document.getElementById("address").innerText = address;
-
-            } else {
-
-                address = "Address unavailable";
-
-                document.getElementById("address").innerText = address;
-            }
-
-            // Nearby Places Search
-            const placeResponse = await fetch(
-                `https://api.geoapify.com/v2/places?categories=commercial,building,education,service,tourism&filter=circle:${lng},${lat},500&limit=1&apiKey=${GEOAPIFY_KEY}`
-            );
-
-            const placeData = await placeResponse.json();
-
-            if(placeData.features && placeData.features.length){
-
-                landmark =
-                    placeData.features[0].properties.name ||
-                    placeData.features[0].properties.address_line1 ||
-                    "No landmark found";
-
-            } else {
-
-                landmark = "No landmark found";
-            }
-
-            document.getElementById("landmark").innerText = landmark;
-
-        } catch(error){
-
-            console.error(error);
-
-            address = "Unable to determine address";
-            landmark = "Unable to determine landmark";
-
-            document.getElementById("address").innerText = address;
-            document.getElementById("landmark").innerText = landmark;
-        }
+    pos => {
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+        document.getElementById("lat").innerText = lat;
+        document.getElementById("lng").innerText = lng;
+    },
+    err => {
+        document.getElementById("lat").innerText = "N/A";
+        document.getElementById("lng").innerText = "N/A";
     }
+    );
 
     function openCamera(){
         document.getElementById("camera").click();
