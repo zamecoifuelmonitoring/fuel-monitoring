@@ -35,7 +35,10 @@
         </select>
 
         <label>Specific Station</label>
-        <select id="specificLocation">  </select>     
+        <select id="specificLocation">  </select>
+        
+        <label>Address</label>
+        <input type="text" id="stationAddress" readonly>
 
         <div id="gpsStatus" class="gps-status"> 📍 Acquiring GPS location... </div>
         <div class="preview" id="preview"> No image captured </div>
@@ -44,76 +47,184 @@
         <div id="status" class="status"></div>
 
     </div>
+    
 <script src="https://cdn.jsdelivr.net/npm/piexifjs"></script>
 <script>
+    // List of stations for each municipality
     const locations = {
 
         "STA CRUZ": [
-            "Jetti (Poblacion)",
-            "Starport (Real Street)",
-            "PTT Gas Station (Lipay)",
-            "Starport Gas Service Station",
-            "Petron (Lipay)",
-            "Jetti (Lipay)",
-            "CETRUM GASOLINE STATION (Lipay)",
-            "Petro Gazz Sta. Cruz",
-            "Casulibay",
+            {
+                station:"Jetti (Poblacion)",
+                address:"Poblacion North, Sta. Cruz, Zambales"
+            },{
+                station:"Starport (Real Street)",
+                address:"Sto. Rosario, Santa Cruz, Zambales"
+            },{
+                station:"PTT Gas Station (Lipay)",
+                address:"2 Lipay Bridge, Sta. Cruz, Zambales"
+            },{
+                station:"Starport Gas Service Station",
+                address:"Lipay, Santa Cruz, Zambales"
+            },{
+                station:"Petron (Lipay)",
+                address:"Lipay, Sta. Cruz, Zambales"
+            },{
+                station:"Jetti (Lipay)",
+                address:"Lipay, Zambales - Pangasinan Rd, Santa Cruz, Zambales"
+            },{
+                station:"CETRUM GASOLINE STATION (Lipay)",
+                address:"Lipay, Olongapo - Bugallon Rd, Santa Cruz, Zambales"
+            },{
+                station:"Petro Gazz Sta. Cruz",
+                address:"Bayto, Zambales - Pangasinan Rd, Santa Cruz, Zambales"
+            },{
+                station:"Casulibay",
+                address:"196 Zambales - Pangasinan Rd, Santa Cruz, Zambales"
+            }
         ],
 
         "CANDELARIA": [
-            "808 Fuel",
-            "Petro Gazz",
-            "Centrum Fuel (Catol)",
-            "1Petrol (Catol)",
-            "LRE Supreme Fuel Gasoline Station",
-            "NCM GASOLINE STATION",
-            "Petron (Sinabacan)",
-            "PTT (Uacon)",
-            "Jetti (Poblacion)",
+            {
+                station:"808 Fuel",
+                address:"Lauis, Candelaria, Zambales"
+            },{
+                station:"Petro Gazz (Catol)",
+                address:"Catol, Candelaria, Zambales"
+            },{
+                station:"Centrum Fuel (Catol)",
+                address:"Catol, Candelaria, Zambales"
+            },{
+                station:"1Petrol (Catol)",
+                address:"Catol, Candelaria, Zambales"
+            },{
+                station:"Agra Gas (Pamibian)",
+                address:"Pamibian, Candelaria, Zambales"
+            },{
+                station:"LRE Supreme Fuel Gasoline Station",
+                address:"Poblacion, Candelaria, Zambales"
+            },{
+                station:"NCM GASOLINE STATION",
+                address:"San Roque, Candelaria, Zambales"
+            },{
+                station:"Petron (Sinabacan)",
+                address:"Sinabacan, Candelaria, Zambales"
+            },{
+                station:"PTT (Uacon)",
+                address:"Uacon, Candelaria Town Proper, Candelaria, Zambales"
+            }
         ],
 
         "MASINLOC": [
-            "PTT Station Masinloc",
-            "Agra Gas South Poblacion",
-            "Big-H",
-            "BOSS Gasoline Station",
-            "1 PetroL-SDG",
-            "GabRon Gasoline Station",
-            "JAYHAN",
+            {
+                station:"PTT Station Masinloc",
+                address:"Togue, Taltal Masinloc, Zambales"
+            },{
+                station:"Agra Gas South Poblacion",
+                address:"Rosario St, North Poblacion, Masinloc Zambales"
+            },{
+                station:"Big-H",
+                address:"Purok 3, Collat, Masinloc, Zambales"
+            },{
+                station:"BOSS Gasoline Station",
+                address:"Collat, Masinloc, Zambales"
+            },{
+                station:"1 PetroL-SDG",
+                address:"Inhobol,Olongapo - Bugallon Rd, Masinloc, Zambales"
+            },{
+                station:"GabRon Gasoline Station",
+                address:"Inhobol,Olongapo - Bugallon Rd, Masinloc, Zambales"
+            },{
+                station:"JAYHAN",
+                address:"Inhobol, Masinloc, Zambales"
+            }
         ],
 
         "PALAUIG": [
-            "PTT Gas Station (PTT Palauig)",
-            "Petron (Palauig)",
-            "King Fuel",
+            {
+                station:"PTT Gas Station (PTT Palauig)",
+                address:"Amungan - Palauig-Banlog Rd, Palauig, Zambales"
+            },{
+                station:"Petron (Palauig)",
+                address:"East Poblacion, Palauig, Zambales"
+            },{
+                station:"King Fuel",
+                address:"Sto Tomas, Amungan - Palauig-Banlog Rd, Palauig, Zambales"
+            }
         ],
 
         "IBA": [
-            "MC Petron Bulilit Station",
-            "1Petrol (Palanginan)",
-            "Phoenix Gas Station (Palanginan)",
-            "PTT IBA Gasoline Station (Palanginan)",
-            "Primer Gas Station (GH)",
-            "Centrum Fuel (Dirita)",
-            "Petron (Zone 1, Iba)",
-            "Primer Jr. Gas Station",
-            "PTT IBA Gasoline Station (Dirita)",
-            "BLC Gas Station",
-            "Centrum Fuel (Bangantalinga)",
-            "Phoenix Gas Station (Bangantalinga)",
-            "MJQ Fuel",
-            "Traveller's Petron Servicenter (Victory liner)",
-            "Agra Gas (Amungan)",
+            {
+                station:"MC Petron Bulilit Station (Palanginan)",
+                address:"Purok 4 National Highway, Palanginan, Iba, Zambales"
+            },{
+                station:"1Petrol (Palanginan)",
+                address:"Palanginan, Iba, Zambales"
+            },{
+                station:"Phoenix Gas Station (Palanginan)",
+                address:"Palanginan, Iba, Zambales"
+            },{
+                station:"PTT IBA Gasoline Station (Palanginan)",
+                address:"Palanginan, Iba, Zambales"
+            },{
+                station:"Primer Gas Station (Govic Highway)",
+                address:"Govic Hwy, Iba, Zambales"
+            },{
+                station:"Centrum Fuel (Dirita)",
+                address:"Zamora St, Iba, Zambales"
+            },{
+                station:"Petron (Zone 1, Iba)",
+                address:"Zone 1 ,Olongapo - Bugallon Rd, Iba, Zambales"
+            },{
+                station:"Primer Jr. Gas Station (Near Public market)",
+                address:"Dirita Baloguen-Govic Hwy, Iba, Zambales"
+            },{
+                station:"PTT IBA Gasoline Station (Dirita)",
+                address:"Dirita Baloguen-Govic Hwy, Iba, Zambales"
+            },{
+                station:"BLC Gas Station (Sto. Rosario)",
+                address:"Sto. Rosario, Iba, Zambales"
+            },{
+                station:"Centrum Fuel (Bangantalinga)",
+                address:"Purok 1 Bangantalinga, Iba, Zambales"
+            },{
+                station:"Phoenix Gas Station (Bangantalinga)",
+                address:"Bangantalinga, Iba, Zambales"
+            },{
+                station:"MJQ Fuel",
+                address:"Bangatalinga- Olongapo - Bugallon Rd, Iba, Zambales"
+            },{
+                station:"Traveller's Petron Servicenter (Victory liner)",
+                address:"Palanginan, Olongapo - Bugallon Rd, Iba, 2201 Zambales"
+            },{
+                station:"Agra Gas (Amungan)",
+                address:"Amungan,Iba, Zambales"
+            }
         ],
 
         "BOTOLAN": [
-            "Flying V Gas Station",
-            "Agra Gas (Tampo)",
-            "Primer Gas Station (Batonlapoc)",
-            "Taugtog RMS Micro Gas Station",
-            "Primer Gas (Taugtog)",
-            "RMS San Miguel micro gas station",
-            "Primer Gas Station (Bucao)",
+            {
+                station:"Flying V Gas Station",
+                address:"Cawayan, Botolan, Zambales"
+            },{
+                station:"Agra Gas (Tampo)",
+                address:"Tampo, Botolan, Zambales"
+            },{
+                station:"Primer Gas Station (Batonlapoc)",
+                address:"Batonlapoc, Botolan, Zambales"
+            },{
+                station:"RMS Micro Gas Station (Taugtog)",
+                address:"Zambales - Tarlac Rd, Botolan, Zambales"
+            },{
+                station:"Primer Gas (Taugtog)",
+                address:"Taugtog, Botolan, Zambales"
+            },{
+                station:"RMS micro gas station (San Miguel)",
+                address:"San Miguel, Botolan, Zambales"
+            },{
+                station:"Primer Gas Station (Bucao)",
+                address:"Bucao, Botolan, Zambales"
+            }
         ]
     };
 
@@ -126,18 +237,34 @@
         locationSelect.innerHTML =
             '<option value="">Select Station</option>';
 
+        
+        document.getElementById("stationAddress").value = "";
+        
         if (!municipality || !locations[municipality]) return;
 
-        locations[municipality].forEach(location => {
+        locations[municipality].forEach(item => {
 
             const option = document.createElement("option");
 
-            option.value = location;
-            option.textContent = location;
+            option.value = item.station;
+            option.textContent = item.station;
+
+            // store address
+            option.dataset.address = item.address;
 
             locationSelect.appendChild(option);
 
         });
+
+    });
+
+    // When station is selected, fill the address field
+    document.getElementById("specificLocation").addEventListener("change", function() {
+
+        const selectedOption = this.options[this.selectedIndex];
+
+        document.getElementById("stationAddress").value =
+            selectedOption.dataset.address || "";
 
     });
 
@@ -151,32 +278,32 @@
 
     let lat = "";
     let lng = "";
-
     const gpsStatus = document.getElementById("gpsStatus");
 
     // Getting user's GPS location
     navigator.geolocation.watchPosition(
-    pos => {
+        pos => {
 
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
 
-        gpsStatus.innerHTML =
-            "📍 Latitude: " + Number(lat).toFixed(6) +
-            "<br>📍 Longitude: " + Number(lng).toFixed(6);
+            gpsStatus.innerHTML =
+                "📍 Latitude: " + Number(lat).toFixed(6) +
+                "<br>📍 Longitude: " + Number(lng).toFixed(6);
 
-    },
-    err => {
+        },
+        err => {
 
-        lat = "";
-        lng = "";
+            lat = "";
+            lng = "";
 
-        gpsStatus.className = "gps-status gps-error";
-        gpsStatus.innerHTML = "❌ Unable to acquire GPS location";
+            gpsStatus.className = "gps-status gps-error";
+            gpsStatus.innerHTML = "❌ Unable to acquire GPS location";
 
-    }
+        }
     );
 
+    // Function to open camera after checking if GPS location is acquired
     function openCamera(){
         if(lat === "" || lng === ""){
             alert("Waiting for GPS location. Please try again in a few seconds.");
@@ -212,7 +339,6 @@
         reader.onload = function () {
 
             const imageData = reader.result;
-
             const img = new Image();
 
             // Once the image is loaded, we can draw it on a canvas and add the watermark
@@ -220,37 +346,37 @@
 
                 const municipality = document.getElementById("municipality").value;
                 const station = document.getElementById("specificLocation").value;
+                const selectedOption = document.getElementById("specificLocation").selectedOptions[0];
+                const address = selectedOption.dataset.address || "";
                 const canvas = document.createElement("canvas");
                 const ctx = canvas.getContext("2d");
 
                 canvas.width = img.width;
                 canvas.height = img.height;
-
                 ctx.drawImage(img, 0, 0);
 
                 const dateTime = new Date().toLocaleString();
-
-                const watermarkLines = [ station + ", " + municipality + ", ZAMBALES, REGION III,",
+                const watermarkLines = [ station, 
+                    address + ", REGION III",
                     lat.toFixed(6) + ", " + lng.toFixed(6),
                     dateTime
                 ];
-
                 const fontSize = Math.max( 22, Math.round(canvas.width / 45));
                 const lineHeight = fontSize + 10;
                 const padding = 20;
                 const boxHeight = (watermarkLines.length * lineHeight) + (padding * 2);
-                ctx.fillStyle = "rgba(0,0,0,0.60)";
 
+                ctx.fillStyle = "rgba(0,0,0,0.60)";
                 ctx.fillRect(
                     0,
                     canvas.height - boxHeight,
                     canvas.width,
                     boxHeight
                 );
-
                 ctx.fillStyle = "#ffffff";
                 ctx.font = "bold " + fontSize + "px Arial";
 
+                // Draw each line of the watermark
                 watermarkLines.forEach((line, index) => {
 
                     ctx.fillText(
@@ -277,6 +403,7 @@
                         thumbnail: null
                     };
 
+                    // Try to load existing EXIF data if present, so we don't overwrite it completely
                     try {
 
                         exifObj = piexif.load(imageData);
@@ -316,20 +443,17 @@
                     exifObj.GPS[ piexif.GPSIFD.GPSLongitude ] = toDMS(lng);
 
                     // Create custom description
-                    const description = "NEA-ZAMECO I" + "\n" +
+                    const description =
                     "Municipality: " + municipality + "\n" +
                     "Station: " + station + "\n" +
+                    "Address: " + address + ", REGION III" + "\n" +
                     "Latitude: " + Number(lat).toFixed(6) + "\n" +
                     "Longitude: " + Number(lng).toFixed(6) + "\n" +
                     "Date: " + dateTime;
 
-                    // Ensure 0th IFD exists
+                    // Store description in EXIF 
                     exifObj["0th"] = exifObj["0th"] || {};
-
-                    // Embed description
                     exifObj["0th"][  piexif.ImageIFD.ImageDescription ] = description;
-
-                    // Standard EXIF timestamp
                     exifObj.Exif = exifObj.Exif || {};
 
                     const exifDate = new Date().toISOString().replace("T"," ").substring(0,19);
@@ -342,6 +466,7 @@
                     finalImageData = piexif.insert( exifBytes, finalImageData );
 
                 }
+                // If there's an error with EXIF processing, log it but continue with the image upload
                 catch(error) {
 
                     console.error( "EXIF error:", error );
@@ -375,6 +500,7 @@
             body: new URLSearchParams({
                 municipality: document.getElementById("municipality").value,
                 station: document.getElementById("specificLocation").value,
+                address: document.getElementById("stationAddress").value,
                 dateFolder: today,
                 fileName: document.getElementById("camera").files[0].name,
                 mimeType: document.getElementById("camera").files[0].type,
@@ -384,11 +510,13 @@
             })
         })
 
+        // Parse response from Apps Script
         .then(async res => {
             const text = await res.text();
             return JSON.parse(text);
         })
 
+        // Update status message based on response
         .then(data => {
 
             if(data.success){
@@ -403,6 +531,7 @@
 
         })
 
+        // Handle network or other errors
         .catch(err => {
 
             console.error(err);
