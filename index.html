@@ -47,7 +47,7 @@
         <div id="status" class="status"></div>
 
     </div>
-    
+
 <script src="https://cdn.jsdelivr.net/npm/piexifjs"></script>
 <script>
     // List of stations for each municipality
@@ -351,9 +351,55 @@
                 const canvas = document.createElement("canvas");
                 const ctx = canvas.getContext("2d");
 
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
+                // Read orientation from original image
+                let orientation = 1;
+
+                try {
+                    const exifData = piexif.load(imageData);
+
+                    orientation =
+                        exifData["0th"][piexif.ImageIFD.Orientation] || 1;
+
+                } catch (e) {
+                    console.log("No orientation EXIF");
+                }
+
+                // Adjust canvas and rotation
+                if (orientation === 6) {
+
+                    // 90° clockwise
+                    canvas.width = img.height;
+                    canvas.height = img.width;
+
+                    ctx.rotate(Math.PI / 2);
+                    ctx.drawImage(img, 0, -img.height);
+
+                } else if (orientation === 8) {
+
+                    // 90° counter-clockwise
+                    canvas.width = img.height;
+                    canvas.height = img.width;
+
+                    ctx.rotate(-Math.PI / 2);
+                    ctx.drawImage(img, -img.width, 0);
+
+                } else if (orientation === 3) {
+
+                    // 180°
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+
+                    ctx.rotate(Math.PI);
+                    ctx.drawImage(img, -img.width, -img.height);
+
+                } else {
+
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+
+                    ctx.drawImage(img, 0, 0);
+
+                }
 
                 const dateTime = new Date().toLocaleString();
                 const watermarkLines = [ station, 
