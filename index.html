@@ -150,7 +150,7 @@
     let lat = "";
     let lng = "";
 
-    navigator.geolocation.getCurrentPosition(
+    navigator.geolocation.watchPosition(
     pos => {
         lat = pos.coords.latitude;
         lng = pos.coords.longitude;
@@ -162,6 +162,11 @@
     );
 
     function openCamera(){
+        if(lat === "" || lng === ""){
+            alert("Waiting for GPS location. Please try again in a few seconds.");
+            return;
+        }
+
         document.getElementById("camera").click();
     }
 
@@ -207,7 +212,7 @@
                 const dateTime = new Date().toLocaleString();
 
                 const watermarkLines = [ station + ", " + municipality + ", ZAMBALES, REGION III,",
-                    lat + ", " + lng,
+                    lat.toFixed(6) + ", " + lng.toFixed(6),
                     dateTime
                 ];
 
@@ -293,8 +298,8 @@
                     const description = "NEA-ZAMECO I" + "\n" +
                     "Municipality: " + municipality + "\n" +
                     "Station: " + station + "\n" +
-                    "Latitude: " + lat + "\n" +
-                    "Longitude: " + lng + "\n" +
+                    "Latitude: " + Number(lat).toFixed(6) + "\n" +
+                    "Longitude: " + Number(lng).toFixed(6) + "\n" +
                     "Date: " + dateTime;
 
                     // Ensure 0th IFD exists
