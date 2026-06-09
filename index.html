@@ -19,7 +19,8 @@
         <h1>Fuel Monitoring</h1>
 
         <!-- Date and Municipality selection -->
-        <h5> "For GPS and camera features, please open this page in External Browser." </h5><hr>
+        <h5> "For GPS and camera features, please open this page in External Browser." </h5>
+        <h5>Please allow the location access!</h5><hr>
 
         <label>Date</label> <input type="text" id="date" readonly>
         <label>Municipality</label> 
@@ -34,15 +35,7 @@
         </select>
 
         <label>Specific Station</label>
-        <select id="specificLocation">
-            
-        </select>
-
-        <h5>Please allow the location access!</h5>
-        <div class="gps">
-            Latitude: <span id="lat">...</span><br>
-            Longitude: <span id="lng">...</span>
-        </div>
+        <select id="specificLocation">  </select>     
 
         <div class="preview" id="preview">No image captured</div>
         <button onclick="openCamera()">📷 Capture Photo</button>
@@ -123,6 +116,7 @@
         ]
     };
 
+    // Changing the list of stations based on municipality selection
     document.getElementById("municipality").addEventListener("change", function () {
 
         const municipality = this.value;
@@ -146,7 +140,7 @@
 
     });
 
-    // IMPORTANT: REPLACE THIS WITH YOUR OWN DEPLOYED SCRIPT URL FOR GDRIVE BACKEND
+    // CONNECTION FOR GDRIVE BACKEND
     const SCRIPT_URL =
     "https://script.google.com/macros/s/AKfycbzwJeSckxflzcOW9o_PHcAARwqPoMSWeuceF_Z0nHW2ELtmjD-hQx4RVZOAg6C669Ba/exec";
 
@@ -160,12 +154,10 @@
     pos => {
         lat = pos.coords.latitude;
         lng = pos.coords.longitude;
-        document.getElementById("lat").innerText = lat;
-        document.getElementById("lng").innerText = lng;
     },
     err => {
-        document.getElementById("lat").innerText = "N/A";
-        document.getElementById("lng").innerText = "N/A";
+        lat = "";
+        lng = "";
     }
     );
 
@@ -175,95 +167,180 @@
 
     document.getElementById("camera").addEventListener("change", function(e){
 
-    const file = e.target.files[0];
-    if(!file) return;
+        const file = e.target.files[0];
+        if(!file) return;
 
-    const municipality = document.getElementById("municipality").value;
-    if(!municipality){
-        alert("Select municipality first");
-        return;
-    }
-
-    const station = document.getElementById("specificLocation").value;
-    if(!station){
-        alert("Select station first");
-        return;
-    }
-
-    document.getElementById("preview").innerHTML =
-    `<img src="${URL.createObjectURL(file)}">`;
-
-    const reader = new FileReader();
-
-    reader.onload = function(){
-
-        const imageData = reader.result;
-
-        // Only JPEG supports EXIF reliably
-        if (!file.type.includes("jpeg") && !file.type.includes("jpg")) {
-
-            const base64 = imageData.split(",")[1];
-
-            uploadImage(base64);
+        const municipality = document.getElementById("municipality").value;
+        if(!municipality){
+            alert("Select municipality first");
             return;
         }
 
-        function toDMS(decimal) {
-
-            const abs = Math.abs(decimal);
-
-            const degrees = Math.floor(abs);
-
-            const minutesFloat = (abs - degrees) * 60;
-            const minutes = Math.floor(minutesFloat);
-
-            const seconds = (minutesFloat - minutes) * 60;
-
-            return [
-                [degrees, 1],
-                [minutes, 1],
-                [Math.round(seconds * 10000), 10000]
-            ];
+        const station = document.getElementById("specificLocation").value;
+        if(!station){
+            alert("Select station first");
+            return;
         }
 
-        const gpsIFD = {};
+        document.getElementById("preview").innerHTML = `<img src="${URL.createObjectURL(file)}">`;
 
-        gpsIFD[piexif.GPSIFD.GPSLatitudeRef] =
-            lat >= 0 ? "N" : "S";
+        const reader = new FileReader();
 
-        gpsIFD[piexif.GPSIFD.GPSLatitude] =
-            toDMS(lat);
+        reader.onload = function () {
 
-        gpsIFD[piexif.GPSIFD.GPSLongitudeRef] =
-            lng >= 0 ? "E" : "W";
+            const imageData = reader.result;
 
-        gpsIFD[piexif.GPSIFD.GPSLongitude] =
-            toDMS(lng);
+            const img = new Image();
 
-        const exifObj = {
-            GPS: gpsIFD
+            img.onload = function () {
+
+                const municipality = document.getElementById("municipality").value;
+                const station = document.getElementById("specificLocation").value;
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+
+                canvas.width = img.width;
+                canvas.height = img.height;
+
+                ctx.drawImage(img, 0, 0);
+
+                const dateTime = new Date().toLocaleString();
+
+                const watermarkLines = [ station + ", " + municipality + ", ZAMBALES, REGION III,",
+                    lat + ", " + lng,
+                    dateTime
+                ];
+
+                const fontSize = Math.max( 22, Math.round(canvas.width / 45));
+                const lineHeight = fontSize + 10;
+                const padding = 20;
+                const boxHeight = (watermarkLines.length * lineHeight) + (padding * 2);
+                ctx.fillStyle = "rgba(0,0,0,0.60)";
+
+                ctx.fillRect(
+                    0,
+                    canvas.height - boxHeight,
+                    canvas.width,
+                    boxHeight
+                );
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold " + fontSize + "px Arial";
+
+                watermarkLines.forEach((line, index) => {
+
+                    ctx.fillText(
+                        line,
+                        padding,
+                        canvas.height -
+                        boxHeight +
+                        padding +
+                        ((index + 1) * lineHeight)
+                    );
+
+                });
+
+                let finalImageData = canvas.toDataURL( "image/jpeg", 0.95);
+
+                try {
+
+                    let exifObj = {
+                        "0th": {},
+                        Exif: {},
+                        GPS: {},
+                        "1st": {},
+                        thumbnail: null
+                    };
+
+                    try {
+
+                        exifObj = piexif.load(imageData);
+
+                    } catch(ex) {
+
+                        console.log("No original EXIF found");
+
+                    }
+
+                    function toDMS(decimal) {
+
+                        const absolute = Math.abs(Number(decimal));
+                        const degrees = Math.floor(absolute);
+                        const minutesFloat = (absolute - degrees) * 60;
+                        const minutes = Math.floor(minutesFloat);
+                        const seconds = (minutesFloat - minutes) * 60;
+
+                        return [
+                            [degrees, 1],
+                            [minutes, 1],
+                            [
+                                Math.round(
+                                    seconds * 10000
+                                ),
+                                10000
+                            ]
+                        ];
+
+                    }
+
+                    exifObj.GPS = exifObj.GPS || {};
+                    exifObj.GPS[ piexif.GPSIFD.GPSLatitudeRef ] = Number(lat) >= 0 ? "N" : "S";
+                    exifObj.GPS[ piexif.GPSIFD.GPSLatitude ] = toDMS(lat);
+                    exifObj.GPS[ piexif.GPSIFD.GPSLongitudeRef ] =  Number(lng) >= 0 ? "E" : "W";
+                    exifObj.GPS[ piexif.GPSIFD.GPSLongitude ] = toDMS(lng);
+
+                    // Create custom description
+                    const description = "NEA-ZAMECO I" + "\n" +
+                    "Municipality: " + municipality + "\n" +
+                    "Station: " + station + "\n" +
+                    "Latitude: " + lat + "\n" +
+                    "Longitude: " + lng + "\n" +
+                    "Date: " + dateTime;
+
+                    // Ensure 0th IFD exists
+                    exifObj["0th"] = exifObj["0th"] || {};
+
+                    // Embed description
+                    exifObj["0th"][  piexif.ImageIFD.ImageDescription ] = description;
+
+                    // Standard EXIF timestamp
+                    exifObj.Exif = exifObj.Exif || {};
+
+                    const exifDate = new Date().toISOString().replace("T"," ").substring(0,19);
+
+                    exifObj.Exif[ piexif.ExifIFD.DateTimeOriginal ] = exifDate;
+                    exifObj.Exif[ piexif.ExifIFD.DateTimeDigitized ] = exifDate;
+
+                    const exifBytes = piexif.dump(exifObj);
+
+                    finalImageData = piexif.insert( exifBytes, finalImageData );
+
+                }
+                catch(error) {
+
+                    console.error( "EXIF error:", error );
+
+                }
+
+                document.getElementById("preview").innerHTML = `<img src="${finalImageData}">`;
+
+                const base64 = finalImageData.split(",")[1];
+
+                uploadImage(base64);
+
+            };
+
+            img.src = imageData;
+
         };
 
-        const exifBytes = piexif.dump(exifObj);
-
-        const imageWithGPS =
-            piexif.insert(exifBytes, imageData);
-
-        const base64 =
-            imageWithGPS.split(",")[1];
-
-        uploadImage(base64);
-
-    };
-
-    reader.readAsDataURL(file);
+        reader.readAsDataURL(file);
 
     });
 
     function uploadImage(base64){
 
-        document.getElementById("status").innerHTML =
-        "<span class='loading'>Uploading...</span>";
+        document.getElementById("status").innerHTML = "<span class='loading'>Uploading...</span>";
 
         fetch(SCRIPT_URL, {
             method: "POST",
@@ -288,13 +365,11 @@
 
             if(data.success){
 
-                document.getElementById("status").innerHTML =
-                "<span class='success'>" + data.message + "</span>";
+                document.getElementById("status").innerHTML = "<span class='success'>" + data.message + "</span>";
 
             }else{
 
-                document.getElementById("status").innerHTML =
-                "<span class='error'>" + data.message + "</span>";
+                document.getElementById("status").innerHTML = "<span class='error'>" + data.message + "</span>";
 
             }
 
@@ -304,15 +379,10 @@
 
             console.error(err);
 
-            document.getElementById("status").innerHTML =
-            "<span class='error'>Backend not reachable</span>";
+            document.getElementById("status").innerHTML = "<span class='error'>Backend not reachable</span>";
 
         });
-
     }
-    
-
 </script>
-
 </body>
 </html>
