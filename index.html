@@ -37,7 +37,8 @@
         <label>Specific Station</label>
         <select id="specificLocation">  </select>     
 
-        <div class="preview" id="preview">No image captured</div>
+        <div id="gpsStatus" class="gps-status"> 📍 Acquiring GPS location... </div>
+        <div class="preview" id="preview"> No image captured </div>
         <button onclick="openCamera()">📷 Capture Photo</button>
         <input type="file" id="camera" accept="image/*" capture="environment" hidden>
         <div id="status" class="status"></div>
@@ -144,20 +145,35 @@
     const SCRIPT_URL =
     "https://script.google.com/macros/s/AKfycbzwJeSckxflzcOW9o_PHcAARwqPoMSWeuceF_Z0nHW2ELtmjD-hQx4RVZOAg6C669Ba/exec";
 
+    // Set today's date in the date input
     const today = new Date().toISOString().split("T")[0];
     document.getElementById("date").value = today;
 
     let lat = "";
     let lng = "";
 
+    const gpsStatus = document.getElementById("gpsStatus");
+
+    // Getting user's GPS location
     navigator.geolocation.watchPosition(
     pos => {
+
         lat = pos.coords.latitude;
         lng = pos.coords.longitude;
+
+        gpsStatus.innerHTML =
+            "📍 Latitude: " + Number(lat).toFixed(6) +
+            "<br>📍 Longitude: " + Number(lng).toFixed(6);
+
     },
     err => {
+
         lat = "";
         lng = "";
+
+        gpsStatus.className = "gps-status gps-error";
+        gpsStatus.innerHTML = "❌ Unable to acquire GPS location";
+
     }
     );
 
@@ -170,6 +186,7 @@
         document.getElementById("camera").click();
     }
 
+    // When user captures an image
     document.getElementById("camera").addEventListener("change", function(e){
 
         const file = e.target.files[0];
@@ -191,12 +208,14 @@
 
         const reader = new FileReader();
 
+        // When the image is loaded, add watermark and EXIF data
         reader.onload = function () {
 
             const imageData = reader.result;
 
             const img = new Image();
 
+            // Once the image is loaded, we can draw it on a canvas and add the watermark
             img.onload = function () {
 
                 const municipality = document.getElementById("municipality").value;
@@ -247,6 +266,7 @@
 
                 let finalImageData = canvas.toDataURL( "image/jpeg", 0.95);
 
+                // Adding EXIF data
                 try {
 
                     let exifObj = {
@@ -267,6 +287,7 @@
 
                     }
 
+                    // Convert decimal coordinates to DMS format required by EXIF
                     function toDMS(decimal) {
 
                         const absolute = Math.abs(Number(decimal));
@@ -343,10 +364,12 @@
 
     });
 
+    // Function to upload image to Google Drive via Apps Script
     function uploadImage(base64){
 
         document.getElementById("status").innerHTML = "<span class='loading'>Uploading...</span>";
 
+        // Send POST request to Apps Script with image data and metadata
         fetch(SCRIPT_URL, {
             method: "POST",
             body: new URLSearchParams({
